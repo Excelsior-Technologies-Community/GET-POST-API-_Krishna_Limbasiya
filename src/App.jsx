@@ -46,65 +46,68 @@ function App() {
   }
 
   return (
-    <div className="container">
+    <main className="container">
       <header>
-        <h1>JSONPlaceholder API Demo</h1>
-        <p>Post Management</p>
+        <h1>Post Engine</h1>
+        <p>A sophisticated interface for managing and visualizing distributed data through the JSONPlaceholder ecosystem.</p>
       </header>
 
       <div className="layout">
-        <section className="form-section">
+        <aside className="form-section">
           <div className="card">
-            <h2>Create New Post</h2>
+            <h2>Draft New Content</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="title">Title</label>
+                <label htmlFor="title">Post Title</label>
                 <input
                   type="text"
                   id="title"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
-                  placeholder="Enter post title..."
+                  placeholder="e.g. The Future of Web Architecture"
                   required
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="body">Description</label>
+                <label htmlFor="body">Content Body</label>
                 <textarea
                   id="body"
                   name="body"
                   value={formData.body}
                   onChange={handleInputChange}
-                  placeholder="Enter post description..."
+                  placeholder="Enter the core message of your post..."
                   rows="4"
                   required
                 ></textarea>
               </div>
               <button type="submit" disabled={submitting}>
-                {submitting ? 'Creating...' : 'Submit Post'}
+                {submitting ? 'Synchronizing...' : 'Publish Post'}
               </button>
             </form>
           </div>
-        </section>
+        </aside>
 
         <section className="list-section">
-          <h2>Recent Posts</h2>
+          <h2>Published Insights</h2>
           <div className="post-list">
             {posts.length > 0 ? (
-              posts.map(post => (
-                <article key={post.id} className="post-card">
+              posts.map((post, index) => (
+                <article key={post.id} className="post-card" style={{ animationDelay: `${index * 0.05}s` }}>
                   <h3>{post.title}</h3>
                   <p>{post.body}</p>
                 </article>
               ))
             ) : (
-              <div className="empty-state">No posts created yet. Try adding one!</div>
+              <div className="empty-state">
+                <p>No active insights found.</p>
+                <small>Start by drafting a new post in the control panel.</small>
+              </div>
             )}
           </div>
         </section>
       </div>
-    </div>
+    </main>
   )
 }
 
