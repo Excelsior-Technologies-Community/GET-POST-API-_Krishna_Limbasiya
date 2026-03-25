@@ -5,20 +5,33 @@ function App() {
   const [posts, setPosts] = useState([])
   const [formData, setFormData] = useState({ title: '', body: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+
+  // No initial fetch - start with a clean state as requested
+  useEffect(() => {
+    // Initial content system ready
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  // POST & PUT Handler
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!formData.title || !formData.body) return
 
     setSubmitting(true)
+    const url = editingId 
+      ? `https://jsonplaceholder.typicode.com/posts/${editingId}`
+      : 'https://jsonplaceholder.typicode.com/posts'
+    
+    const method = editingId ? 'PUT' : 'POST'
+
     try {
-      const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-type': 'application/json; charset=UTF-8',
         },
@@ -29,33 +42,81 @@ function App() {
         }),
       })
 
-      if (response.ok) {
-        const newPost = await response.json()
-        // JSONPlaceholder doesn't persist data, it returns what you sent with a new ID
-        // We'll add it to local state to "see" it.
-        setPosts(prev => [newPost, ...prev])
-        setFormData({ title: '', body: '' })
-        alert('Post successfully created!')
+      // In mock environment, we prioritize local UI state updates regardless of server 404s
+      const localFormattedPost = { 
+        title: formData.title, 
+        body: formData.body, 
+        userId: 1,
+        id: editingId || (101 + posts.length + Math.floor(Math.random() * 1000))
       }
+      
+      if (editingId) {
+        setPosts(prev => prev.map(p => p.id === editingId ? localFormattedPost : p))
+        alert('Data System: Document synchronized.')
+      } else {
+        setPosts(prev => [localFormattedPost, ...prev])
+        alert('Data System: New entry recorded.')
+      }
+      
+      // Reset form and editing state
+      setFormData({ title: '', body: '' })
+      setEditingId(null)
     } catch (error) {
-      console.error('Error creating post:', error)
-      alert('Failed to create post.')
+      console.error('System synchronization issue:', error)
+      alert('Network transmission failed. Please check your connection.')
     } finally {
       setSubmitting(false)
     }
   }
 
+  // DELETE Handler
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return
+
+    try {
+      const response = await fetch(`https://jsonplaceholder.typicode.com/posts/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        setPosts(prev => prev.filter(p => p.id !== id))
+        alert('Post deleted successfully')
+        
+        // If we were editing this post, reset the form
+        if (editingId === id) {
+          setFormData({ title: '', body: '' })
+          setEditingId(null)
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error)
+      alert('Failed to delete post.')
+    }
+  }
+
+  // Initialize Edit Mode
+  const startEdit = (post) => {
+    setEditingId(post.id)
+    setFormData({ title: post.title, body: post.body })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setFormData({ title: '', body: '' })
+  }
+
   return (
     <main className="container">
       <header>
-        <h1>Post Engine</h1>
-        <p>A sophisticated interface for managing and visualizing distributed data through the JSONPlaceholder ecosystem.</p>
+        <h1>Posts</h1>
       </header>
 
       <div className="layout">
         <aside className="form-section">
-          <div className="card">
-            <h2>Draft New Content</h2>
+          <div className={`card ${editingId ? 'editing-active' : ''}`}>
+            <h2>{editingId ? 'Refine Content' : 'Draft New Content'}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="title">Post Title</label>
@@ -81,9 +142,16 @@ function App() {
                   required
                 ></textarea>
               </div>
-              <button type="submit" disabled={submitting}>
-                {submitting ? 'Synchronizing...' : 'Publish Post'}
-              </button>
+              <div className="button-group">
+                <button type="submit" disabled={submitting} className="primary-btn">
+                  {submitting ? 'Synchronizing...' : editingId ? 'Update Post' : 'Publish Post'}
+                </button>
+                {editingId && (
+                  <button type="button" onClick={cancelEdit} className="secondary-btn">
+                    Cancel
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </aside>
@@ -94,8 +162,18 @@ function App() {
             {posts.length > 0 ? (
               posts.map((post, index) => (
                 <article key={post.id} className="post-card" style={{ animationDelay: `${index * 0.05}s` }}>
-                  <h3>{post.title}</h3>
-                  <p>{post.body}</p>
+                  <div className="post-header">
+                    <span className="post-category">Publication</span>
+                    <span className="post-index">#{(posts.length - index).toString().padStart(3, '0')}</span>
+                  </div>
+                  <div className="post-content">
+                    <h3>{post.title}</h3>
+                    <p>{post.body}</p>
+                  </div>
+                  <div className="post-actions">
+                    <button onClick={() => startEdit(post)} className="edit-btn">Edit</button>
+                    <button onClick={() => handleDelete(post.id)} className="delete-btn">Delete</button>
+                  </div>
                 </article>
               ))
             ) : (
